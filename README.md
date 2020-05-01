@@ -1,16 +1,16 @@
 
 ![alt tag](https://raw.githubusercontent.com/lateralblast/ansible-lvm-luks/master/images/cat_in_a_box.jpg)
 
-Automating KVM and LUKS with Ansible
+Automating LVM and LUKS with Ansible
 ------------------------------------
 
 Introduction
-------------
+============
 
 This is a quick example of how to automate LVM on LUKS with Anisble.
 
 Requirements
-------------
+============
 
 Required software:
 
@@ -18,7 +18,7 @@ Required software:
 - Cryptsetup packages
 
 Overview
---------
+========
 
 This example does the following:
 
