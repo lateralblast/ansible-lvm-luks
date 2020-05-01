@@ -1,6 +1,6 @@
 ---
 
-- name: Create Base Data Primary Partition
+- name: Create Primary Partitions
   parted:
     device: "{{ item.device }}"
     label:  gpt
@@ -17,7 +17,7 @@
     vg:   vg05
     pvs:  /dev/sde1
 
-- name: Check Base Data Volume
+- name: Check Vault Volume
   lvol:
     vg:     vg05
     lv:     vault
@@ -29,7 +29,7 @@
     fstype: ext4
     dev:    /dev/mapper/vg05-vault
 
-- name: Check Base Data Mount
+- name: Check Vault Mount
   mount:
     name:   /vault
     src:    "/dev/mapper/vg05-vault"
@@ -44,7 +44,7 @@
     group: root
     mode:  "0700"
 
-- name: Check Secret File
+- name: Check Secret Files
   stat:
     path:   "/vault/secrets/crypt-{{ item.vol }}"
   register: vols
@@ -75,7 +75,7 @@
     - { vol: "data" }
     - { vol: "backup" }
 
-- name: Check LUKS Container
+- name: Check LUKS Container is inactive
   command:  sh -c "cryptsetup status crypt-{{ item.vol }} |grep active"
   register: crypts
   loop:
@@ -83,7 +83,7 @@
     - { device: "/dev/sdc1", vol: "data" }
     - { device: "/dev/sdd1", vol: "backup" }
 
-- name: Create LUKS Container
+- name: Create LUKS Container if inactive
   luks_device:
     device:       "{{ item.item.device }}"
     name:         "crypt-{{ item.item.vol }}"
@@ -116,7 +116,7 @@
     - { device: "/dev/sdc1", vol: "data" }
     - { device: "/dev/sdd1", vol: "backup" }
 
-- name: Check Base Data Volume Group
+- name: Check Volume Groups
   lvg:
     vg:   "{{ item.vg }}"
     pvs:  "/dev/mapper/crypt-{{ item.vol }}"
@@ -125,7 +125,7 @@
     - { vg: "vg03", vol: "data" }
     - { vg: "vg04", vol: "backup" }
 
-- name: Check Base Data Volume
+- name: Check Volumes
   lvol:
     vg:     "{{ item.vg }}"
     lv:     "{{ item.vol }}"
@@ -136,7 +136,7 @@
     - { vg: "vg03", vol: "data" }
     - { vg: "vg04", vol: "backup" }
 
-- name: Check Base Data Filesystem
+- name: Check Filesystems
   filesystem:
     fstype: ext4
     dev:    "/dev/mapper/{{ item.vg }}-{{ item.vol }}"
@@ -145,7 +145,7 @@
     - { vg: "vg03", vol: "data" }
     - { vg: "vg04", vol: "backup" }
 
-- name: Check Base Data Mount
+- name: Check Mounts
   mount:
     name:   "{{ item.mount }}"
     src:    "/dev/mapper/{{ item.vg }}-{{ item.vol }}"
