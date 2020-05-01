@@ -1,0 +1,157 @@
+---
+
+- name: Create Base Data Primary Partition
+  parted:
+    device: "{{ item.device }}"
+    label:  gpt
+    number: 1
+    state:  present
+  loop:
+    - { device: "/dev/sdb" }
+    - { device: "/dev/sdc" }
+    - { device: "/dev/sdd" }
+    - { device: "/dev/sde" }
+
+- name: Check Base Vault Volume Group
+  lvg:
+    vg:   vg05
+    pvs:  /dev/sde1
+
+- name: Check Base Data Volume
+  lvol:
+    vg:     vg05
+    lv:     vault
+    size:   100%FREE
+    shrink: false
+
+- name: Check Base Data Filesystem
+  filesystem:
+    fstype: ext4
+    dev:    /dev/mapper/vg05-vault
+
+- name: Check Base Data Mount
+  mount:
+    name:   /vault
+    src:    "/dev/mapper/vg05-vault"
+    fstype: ext4
+    state:  mounted
+
+- name: Check Secret Directory 
+  file:
+    state: directory
+    path:  /vault/secrets
+    owner: root
+    group: root
+    mode:  "0700"
+
+- name: Check Secret File
+  stat:
+    path:   "/vault/secrets/crypt-{{ item.vol }}"
+  register: vols
+  loop:
+    - { vol: "net" }
+    - { vol: "data" }
+    - { vol: "backup" }
+
+- name: Check Secret File Creation
+  command: sh -c "dd if=/dev/urandom of=/vault/secrets/crypt-{{ item.item.vol }} bs=1024 count=4"
+  args:    
+    chdir:   /vault/secrets
+    creates: "/vault/secrets/crypt-{{ item.item.vol }}"
+  when: 
+    - item.stat.exists|bool == false
+  with_items:
+    - "{{ vols.results }}"
+
+- name: Check Secret File Permissions
+  file:
+    state: file
+    path:  "/vault/secrets/crypt-{{ item.vol }}"
+    owner: root
+    group: root
+    mode:  "0400"
+  loop:
+    - { vol: "net" }
+    - { vol: "data" }
+    - { vol: "backup" }
+
+- name: Check LUKS Container
+  command:  sh -c "cryptsetup status crypt-{{ item.vol }} |grep active"
+  register: crypts
+  loop:
+    - { device: "/dev/sdb1", vol: "net" }
+    - { device: "/dev/sdc1", vol: "data" }
+    - { device: "/dev/sdd1", vol: "backup" }
+
+- name: Create LUKS Container
+  luks_device:
+    device:       "{{ item.item.device }}"
+    name:         "crypt-{{ item.item.vol }}"
+    state:        present
+    keyfile:      "/vault/secrets/crypt-{{ item.item.vol }}"
+  with_items:
+    - "{{ crypts.results }}"
+  when: 
+    - item.stdout.find('inactive') != -1
+
+- name: Create crypttab entry
+  crypttab:
+    backing_device: "{{ item.device }}"
+    name:           "crypt-{{ item.vol }}" 
+    state:          present
+    password:       "/vault/secrets/crypt-{{ item.vol }}"
+  loop:
+    - { device: "/dev/sdb1", vol: "net" }
+    - { device: "/dev/sdc1", vol: "data" }
+    - { device: "/dev/sdd1", vol: "backup" }
+
+- name: Open LUKS Container
+  luks_device:
+    device:       "{{ item.device }}"
+    name:         "crypt-{{ item.vol }}"
+    state:        opened
+    keyfile:      "/vault/secrets/crypt-{{ item.vol }}"
+  loop:
+    - { device: "/dev/sdb1", vol: "net" }
+    - { device: "/dev/sdc1", vol: "data" }
+    - { device: "/dev/sdd1", vol: "backup" }
+
+- name: Check Base Data Volume Group
+  lvg:
+    vg:   "{{ item.vg }}"
+    pvs:  "/dev/mapper/crypt-{{ item.vol }}"
+  loop:
+    - { vg: "vg02", vol: "net" }
+    - { vg: "vg03", vol: "data" }
+    - { vg: "vg04", vol: "backup" }
+
+- name: Check Base Data Volume
+  lvol:
+    vg:     "{{ item.vg }}"
+    lv:     "{{ item.vol }}"
+    size:   100%FREE
+    shrink: false
+  loop:
+    - { vg: "vg02", vol: "net" }
+    - { vg: "vg03", vol: "data" }
+    - { vg: "vg04", vol: "backup" }
+
+- name: Check Base Data Filesystem
+  filesystem:
+    fstype: ext4
+    dev:    "/dev/mapper/{{ item.vg }}-{{ item.vol }}"
+  loop:
+    - { vg: "vg02", vol: "net" }
+    - { vg: "vg03", vol: "data" }
+    - { vg: "vg04", vol: "backup" }
+
+- name: Check Base Data Mount
+  mount:
+    name:   "{{ item.mount }}"
+    src:    "/dev/mapper/{{ item.vg }}-{{ item.vol }}"
+    fstype: ext4
+    state:  mounted
+  loop:
+    - { mount: "/net",     vg: "vg02", vol: "net" }
+    - { mount: "/data",    vg: "vg03", vol: "data" }
+    - { mount: "/backup",  vg: "vg04", vol: "backup" }
