@@ -12,7 +12,7 @@
     - { device: "/dev/sdd" }
     - { device: "/dev/sde" }
 
-- name: Check Base Vault Volume Group
+- name: Check Vault Volume Group
   lvg:
     vg:   vg05
     pvs:  /dev/sde1
@@ -24,7 +24,7 @@
     size:   100%FREE
     shrink: false
 
-- name: Check Base Data Filesystem
+- name: Check Vault Filesystem
   filesystem:
     fstype: ext4
     dev:    /dev/mapper/vg05-vault
@@ -105,7 +105,7 @@
     - { device: "/dev/sdc1", vol: "data" }
     - { device: "/dev/sdd1", vol: "backup" }
 
-- name: Open LUKS Container
+- name: Open LUKS Containers
   luks_device:
     device:       "{{ item.device }}"
     name:         "crypt-{{ item.vol }}"
