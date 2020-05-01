@@ -29,7 +29,7 @@ This example does the following:
 
 The disk/volume/filesystem end up looking like this (via lsblk):
 
-``
+```
 sdb                 8:16   0 465.3G  0 disk
 └─sdb1              8:17   0 465.3G  0 part
   └─crypt-net     253:12   0 465.2G  0 crypt
@@ -45,4 +45,4 @@ sdd                 8:48   0   1.1T  0 disk
 sde                 8:64   0  14.9G  0 disk
 └─sde1              8:65   0  14.9G  0 part
   └─vg05-vault    253:9    0  14.9G  0 lvm   /vault
-``
+```
