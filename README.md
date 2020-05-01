@@ -1,4 +1,9 @@
 
+![alt tag](https://raw.githubusercontent.com/lateralblast/ansible-lvm-luks/master/images/cat_in_a_box.jpg)
+
+Automating KVM and LUKS with Ansible
+------------------------------------
+
 Introduction
 ------------
 
